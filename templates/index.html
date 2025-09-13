@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Anonymous Chat • Real-time</title>
+    
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #121933;
+        --panel-2: #0f172a;
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --accent: #6366f1;
+        --code-bg: #0a0f1f;
+        --code-border: #1f2a44;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
+        background: radial-gradient(
+            1200px 800px at 80% -10%,
+            rgba(99, 102, 241, 0.15),
+            transparent
+          ),
+          radial-gradient(
+            900px 600px at -10% 120%,
+            rgba(34, 211, 238, 0.15),
+            transparent
+          ),
+          var(--bg);
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .app {
+        width: min(100%, 900px);
+        height: min(100vh, 720px);
+        display: flex;
+        flex-direction: column;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        overflow: hidden;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(255, 255, 255, 0)
+        );
+        backdrop-filter: blur(6px);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      }
+      .topbar {
+        padding: 14px 18px;
+        background: var(--panel-2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: space-between;
+      }
+      .topbar .brand {
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+      .topbar .hint {
+        color: var(--muted);
+        font-size: 12px;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .status-offline {
+        color: #ef4444;
+      }
+
+      .status-online {
+        color: #10b981;
+      }
+
+      .user-count {
+        color: var(--muted);
+      }
+
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px;
+        background: linear-gradient(
+          180deg,
+          rgba(9, 14, 28, 0.3),
+          rgba(9, 14, 28, 0.2)
+        );
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      /* Every message item should never shrink */
+      .msg {
+        flex: 0 0 auto;
+      }
+
+      .bubble {
+        max-width: 78%;
+        padding: 12px 14px;
+        border-radius: 14px;
+        line-height: 1.4;
+        font-size: 15px;
+        position: relative;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+      }
+      .bubble.user {
+        margin-left: auto;
+        background: linear-gradient(180deg, #1b2350, #141c3d);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .bubble.other {
+        margin-right: auto;
+        background: linear-gradient(180deg, #1a1a2e, #16213e);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .bubble.system {
+        margin: 0 auto;
+        background: linear-gradient(
+          180deg,
+          rgba(99, 102, 241, 0.1),
+          rgba(99, 102, 241, 0.05)
+        );
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        color: #c7d2fe;
+        font-size: 12px;
+        text-align: center;
+        max-width: 60%;
+      }
+
+      /* Code bubble (fixed size; internal scroll only) */
+      .code-wrap {
+        width: 100%;
+        max-width: 100%;
+        margin-left: auto;
+        border-radius: 16px;
+        overflow: visible;
+        border: 1px solid var(--code-border);
+        background: linear-gradient(
+          135deg,
+          var(--code-bg),
+          rgba(10, 15, 31, 0.8)
+        );
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          0 0 0 1px rgba(255, 255, 255, 0.02);
+        flex: 0 0 auto;
+        position: relative;
+        margin-top: 20px;
+        backdrop-filter: blur(10px);
+      }
+      .code-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: linear-gradient(
+          135deg,
+          rgba(99, 102, 241, 0.15),
+          rgba(99, 102, 241, 0.08)
+        );
+        border-bottom: 1px solid var(--code-border);
+        font-size: 12px;
+        color: #c7d2fe;
+        border-radius: 16px 16px 0 0;
+        backdrop-filter: blur(5px);
+      }
+      .code-head .lang {
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        opacity: 0.95;
+        font-weight: 600;
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .btn {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: transparent;
+        color: var(--text);
+        padding: 6px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .btn:hover {
+        border-color: rgba(255, 255, 255, 0.35);
+      }
+
+      /* Toggle Switch Styles */
+      .toggle-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .toggle-input {
+        display: none;
+      }
+
+      .toggle-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.02);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .toggle-label:hover {
+        border-color: rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .toggle-icon {
+        color: var(--muted);
+        transition: all 0.2s ease;
+      }
+
+      .toggle-input:checked + .toggle-label {
+        background: linear-gradient(
+          135deg,
+          rgba(99, 102, 241, 0.2),
+          rgba(99, 102, 241, 0.1)
+        );
+        border-color: rgba(99, 102, 241, 0.4);
+        box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.1);
+      }
+
+      .toggle-input:checked + .toggle-label .toggle-icon {
+        color: #c7d2fe;
+        transform: scale(1.1);
+      }
+
+      .toggle-input:checked + .toggle-label::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(99, 102, 241, 0.1),
+          transparent
+        );
+        border-radius: 12px;
+        opacity: 0.5;
+      }
+
+      /* Code Editor Button */
+      .code-editor-btn {
+        background: rgba(34, 211, 238, 0.1);
+        border-color: rgba(34, 211, 238, 0.3);
+        color: #67e8f9;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .code-editor-btn:hover {
+        background: rgba(34, 211, 238, 0.2);
+        border-color: rgba(34, 211, 238, 0.5);
+      }
+
+      /* Modal Styles */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+      }
+
+      .modal-content {
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        width: 100%;
+        max-width: 800px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .modal-header h3 {
+        margin: 0;
+        color: var(--text);
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 24px;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        transition: all 0.2s;
+      }
+
+      .modal-close:hover {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .modal-body {
+        flex: 1;
+        padding: 20px 24px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .editor-toolbar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        align-items: center;
+      }
+
+      .language-select {
+        background: var(--code-bg);
+        border: 1px solid var(--code-border);
+        color: var(--text);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+      }
+
+      .language-select:focus {
+        border-color: var(--accent);
+      }
+
+      .format-btn {
+        background: rgba(34, 211, 238, 0.1);
+        border-color: rgba(34, 211, 238, 0.3);
+        color: #67e8f9;
+      }
+
+      .format-btn:hover {
+        background: rgba(34, 211, 238, 0.2);
+        border-color: rgba(34, 211, 238, 0.5);
+      }
+
+      .clear-btn {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+      }
+
+      .clear-btn:hover {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.5);
+      }
+
+      .code-editor-textarea {
+        flex: 1;
+        background: var(--code-bg);
+        border: 1px solid var(--code-border);
+        color: var(--text);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        padding: 16px;
+        border-radius: 8px;
+        resize: none;
+        outline: none;
+        min-height: 300px;
+      }
+
+      .code-editor-textarea:focus {
+        border-color: var(--accent);
+      }
+
+      .modal-footer {
+        display: flex;
+        gap: 12px;
+        padding: 20px 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        justify-content: flex-end;
+      }
+
+      .insert-btn {
+        background: linear-gradient(135deg, var(--accent), #3b82f6);
+        border-color: var(--accent);
+        color: white;
+        font-weight: 600;
+      }
+
+      .insert-btn:hover {
+        background: linear-gradient(135deg, #4f46e5, #2563eb);
+      }
+
+      .cancel-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: var(--muted);
+      }
+
+      .cancel-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text);
+      }
+
+      /* Name Entry Modal */
+      .name-entry-modal {
+        max-width: 400px;
+      }
+
+      .name-entry-form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        align-items: center;
+        text-align: center;
+      }
+
+      .name-entry-form label {
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .name-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        background: var(--code-bg);
+        color: var(--text);
+        font-size: 16px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      .name-input:focus {
+        border-color: var(--accent);
+      }
+
+      .name-hint {
+        color: var(--muted);
+        font-size: 12px;
+        margin: 0;
+      }
+
+      /* User Name Display */
+      .message-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        font-size: 12px;
+      }
+
+      .user-name {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .user-name.own {
+        color: #67e8f9;
+      }
+
+      .message-time {
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .bubble {
+        position: relative;
+      }
+
+      .bubble.with-name {
+        margin-top: 20px;
+      }
+
+      .bubble.with-name::before {
+        content: attr(data-username);
+        position: absolute;
+        top: -16px;
+        left: 0;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--accent);
+      }
+
+      .bubble.user.with-name::before {
+        right: 0;
+        left: auto;
+        color: #67e8f9;
+      }
+
+      /* Code Sender Name */
+      .code-sender-name {
+        position: absolute;
+        top: -18px;
+        left: 0;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--accent);
+        z-index: 1;
+        background: linear-gradient(135deg, var(--bg), rgba(9, 14, 28, 0.8));
+        padding: 3px 8px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        font-size: 9px;
+      }
+
+      .code-wrap.user .code-sender-name {
+        right: 0;
+        left: auto;
+        color: #67e8f9;
+        background: linear-gradient(
+          135deg,
+          rgba(103, 232, 249, 0.1),
+          rgba(103, 232, 249, 0.05)
+        );
+        border-color: rgba(103, 232, 249, 0.2);
+      }
+
+      /* Dynamic viewport for code; adapts to content */
+      .code-viewport {
+        max-height: 260px;
+        overflow: auto;
+      }
+
+      pre {
+        margin: 0;
+        padding: 14px;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 13px;
+        color: #e2e8f0;
+      }
+
+      /* Input area */
+      .input {
+        display: flex;
+        gap: 10px;
+        padding: 14px;
+        background: var(--panel-2);
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .text-input {
+        flex: 1;
+        resize: none;
+        min-height: 44px;
+        max-height: 160px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text);
+        outline: none;
+      }
+      .text-input::placeholder {
+        color: var(--muted);
+      }
+      .send {
+        padding: 0 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: linear-gradient(180deg, var(--accent), #3b82f6);
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .notifications {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .notification {
+        background: #24292e;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        transform: translateY(-10px);
+        animation: slideIn 0.4s forwards, fadeOut 0.5s 2.5s forwards;
+      }
+      /* Modal Overlay */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        display: block;
+      }
+
+      /* Modal Box */
+      /* Modal Box */
+      .modal-content {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #1e1e2f;
+        color: #e5e7eb;
+        padding: 20px;
+        border-radius: 12px;
+        max-width: 600px;
+        width: 90%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease-out;
+        font-family: "Inter", "Segoe UI", "Helvetica Neue", sans-serif; /* modern font */
+      }
+
+      /* Header */
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #333;
+        padding-bottom: 6px; /* smaller padding */
+      }
+
+      /* Header Title */
+      .modal-header h3 {
+        font-size: 16px; /* smaller, neat */
+        font-weight: 600;
+        margin: 0;
+      }
+
+      /* Close Button */
+      .modal-close {
+        cursor: pointer;
+        font-size: 18px; /* smaller */
+        font-weight: bold;
+        color: #f87171;
+        transition: color 0.2s;
+      }
+      .modal-close:hover {
+        color: #fff;
+      }
+
+      /* Body */
+      .modal-body {
+        margin-top: 10px;
+        line-height: 1.5;
+        max-height: 400px;
+        overflow-y: auto;
+        background: #0b1020;
+        padding: 12px;
+        border-radius: 8px;
+        font-family: "Fira Code", monospace; /* nice code font */
+        font-size: 14px;
+      }
+
+      /* Animation */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -55%);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, -50%);
+        }
+      }
+
+      @keyframes slideIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes fadeOut {
+        to {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .bubble {
+          max-width: 86%;
+        }
+        .code-wrap {
+          max-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="notifications" class="notifications"></div>
+    <div class="app" role="application" aria-label="Anonymous Chat">
+      <div class="topbar">
+        <div class="brand">Anonymous Chat</div>
+        <div class="hint">
+          <span id="connectionStatus" class="status-offline"
+            >Connecting...</span
+          >
+        </div>
+      </div>
+
+      <div
+        id="messages"
+        class="messages"
+        aria-live="polite"
+        aria-relevant="additions"
+      ></div>
+
+      <div class="input">
+        <textarea
+          id="input"
+          class="text-input"
+          placeholder="Type a message or paste code"
+          spellcheck="true"
+        ></textarea>
+        <div class="toggle-container" title="Toggle Code (Ctrl+K)">
+          <input type="checkbox" id="codeToggle" class="toggle-input" />
+          <label for="codeToggle" class="toggle-label">
+            <svg
+              class="toggle-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="16,18 22,12 16,6"></polyline>
+              <polyline points="8,6 2,12 8,18"></polyline>
+            </svg>
+          </label>
+        </div>
+        <button
+          id="codeEditorBtn"
+          class="btn code-editor-btn"
+          title="Open Code Editor"
+          style="display: none"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+            ></path>
+            <polyline points="14,2 14,8 20,8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10,9 9,9 8,9"></polyline>
+          </svg>
+          Editor
+        </button>
+        <button id="send" class="send" title="Send (Enter)">Send</button>
+      </div>
+    </div>
+
+    <!-- Name Entry Modal -->
+    <div id="nameEntryModal" class="modal-overlay">
+      <div class="modal-content name-entry-modal">
+        <div class="modal-header">
+          <h3>Welcome to Anonymous Chat</h3>
+        </div>
+        <div class="modal-body">
+          <div class="name-entry-form">
+            <label for="userNameInput">Enter your name:</label>
+            <input
+              type="text"
+              id="userNameInput"
+              class="name-input"
+              placeholder="Your name..."
+              maxlength="20"
+              autocomplete="off"
+            />
+            <p class="name-hint">This will be displayed above your messages</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="joinChatBtn" class="btn insert-btn">Join Chat</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Summary Modal -->
+    <div id="aiModal" style="display: none">
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>AI Summary</h3>
+          <span id="closeModal" class="modal-close">&times;</span>
+        </div>
+        <div id="modalContent" class="modal-body">Getting summary...</div>
+      </div>
+    </div>
+
+    <!-- Code Editor Modal -->
+    <div id="codeEditorModal" class="modal-overlay" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Code Editor</h3>
+          <button id="closeModal" class="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="editor-toolbar">
+            <button id="clearCode" class="btn clear-btn">Clear</button>
+          </div>
+          <textarea
+            id="codeEditor"
+            class="code-editor-textarea"
+            placeholder="Write your code here..."
+          ></textarea>
+        </div>
+        <div class="modal-footer">
+          <button id="insertCode" class="btn insert-btn">Insert Code</button>
+          <button id="cancelModal" class="btn cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Socket.IO Client -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script>
+      function showNotification(message) {
+        const container = document.getElementById("notifications");
+        const notif = document.createElement("div");
+        notif.className = "notification";
+        notif.textContent = message;
+        container.appendChild(notif);
+        setTimeout(() => notif.remove(), 3000);
+      }
+      const msgEl = document.getElementById("messages");
+      const input = document.getElementById("input");
+      const sendBtn = document.getElementById("send");
+      const codeToggleBtn = document.getElementById("codeToggle");
+      const codeEditorBtn = document.getElementById("codeEditorBtn");
+      const codeEditorModal = document.getElementById("codeEditorModal");
+      const codeEditor = document.getElementById("codeEditor");
+      const closeModal = document.getElementById("closeModal");
+      const cancelModal = document.getElementById("cancelModal");
+      const insertCode = document.getElementById("insertCode");
+      const clearCode = document.getElementById("clearCode");
+      const connectionStatus = document.getElementById("connectionStatus");
+      const userCount = document.getElementById("userCount");
+      const nameEntryModal = document.getElementById("nameEntryModal");
+      const userNameInput = document.getElementById("userNameInput");
+      const joinChatBtn = document.getElementById("joinChatBtn");
+
+      // WebSocket connection
+      const socket = io();
+      let currentUserId = null;
+      let currentUserName = null;
+      let isConnected = false;
+      let hasJoined = false;
+
+      function autogrow() {
+        input.style.height = "auto";
+        input.style.height = Math.min(input.scrollHeight, 160) + "px";
+      }
+      input.addEventListener("input", autogrow);
+
+      function scrollToBottom() {
+        msgEl.scrollTop = msgEl.scrollHeight;
+      }
+
+      function parseCodeFence(text) {
+        // Supports ```lang\ncode\n``` anywhere in the message; returns array of segments
+        const re = /```(\w+)?\n([\s\S]*?)```/g;
+        let lastIdx = 0;
+        let m;
+        const parts = [];
+        while ((m = re.exec(text)) !== null) {
+          if (m.index > lastIdx) {
+            const before = text.slice(lastIdx, m.index).trim();
+            if (before) parts.push({ type: "text", content: before });
+          }
+          const lang = m[1] || "code";
+          const content = m[2].replace(/\s+$/, "").trim(); // Remove all trailing whitespace including newlines
+          parts.push({ type: "code", lang, content });
+          lastIdx = re.lastIndex;
+        }
+        const tail = text.slice(lastIdx).trim();
+        if (tail) parts.push({ type: "text", content: tail });
+        return parts;
+      }
+
+      function escapeHTML(str) {
+        return str.replace(
+          /[&<>\"]/g,
+          (s) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[s])
+        );
+      }
+
+      function makeTextBubble(text, messageType = "user", userName = null) {
+        const div = document.createElement("div");
+        div.className = `bubble ${messageType} msg`;
+        if (userName) {
+          div.className += " with-name";
+          div.setAttribute("data-username", userName);
+        }
+        div.textContent = text;
+        return div;
+      }
+      // Function to call backend and show modal
+      // Show modal
+      async function askAI(code) {
+        const modal = document.getElementById("aiModal");
+        const contentDiv = document.getElementById("modalContent");
+
+        modal.style.display = "block"; // overlay + modal-content
+        contentDiv.textContent = "Getting summary...";
+
+        try {
+          const res = await fetch("/ai_summarize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code }),
+          });
+          const data = await res.json();
+          const summaryText = data.summary;
+
+          // Split by ' Summary: ' to separate lines
+          const parts = summaryText.split("Summary:");
+          contentDiv.innerHTML = `${parts[0]}<br>Summary: ${parts[1]}`;
+        } catch (err) {
+          contentDiv.textContent = "Failed to get summary.";
+        }
+      }
+
+      // Close modal
+      document.getElementById("closeModal").onclick = () => {
+        document.getElementById("aiModal").style.display = "none";
+      };
+
+      // Click outside modal content closes modal
+      window.onclick = (event) => {
+        const modal = document.getElementById("aiModal");
+        if (event.target.classList.contains("modal-overlay")) {
+          modal.style.display = "none";
+        }
+      };
+
+      function makeCodeBubble(
+        code,
+        lang,
+        messageType = "user",
+        userName = null
+      ) {
+        const wrap = document.createElement("div");
+        wrap.className = `code-wrap msg ${messageType}`;
+
+        // Add user name header above code block if provided
+        if (userName) {
+          const nameHeader = document.createElement("div");
+          nameHeader.className = "code-sender-name";
+          nameHeader.textContent = userName;
+          wrap.appendChild(nameHeader);
+        }
+
+        const head = document.createElement("div");
+        head.className = "code-head";
+        const langTag = document.createElement("span");
+        langTag.className = "lang";
+        langTag.textContent = lang || "code";
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "btn";
+        copyBtn.textContent = "Copy";
+        copyBtn.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(code);
+            copyBtn.textContent = "Copied!";
+            setTimeout(() => (copyBtn.textContent = "Copy"), 1400);
+          } catch {
+            copyBtn.textContent = "Failed";
+            setTimeout(() => (copyBtn.textContent = "Copy"), 1400);
+          }
+        });
+        const aiBtn = document.createElement("button");
+        aiBtn.className = "btn";
+        aiBtn.textContent = "AI ✨";
+        aiBtn.addEventListener("click", () => {
+          // Call your askAI function here and pass the code
+          askAI(code);
+        });
+        head.appendChild(langTag);
+        head.appendChild(aiBtn);
+        head.appendChild(copyBtn);
+
+        const viewport = document.createElement("div");
+        viewport.className = "code-viewport";
+        const pre = document.createElement("pre");
+        const codeEl = document.createElement("code");
+        codeEl.innerHTML = escapeHTML(code);
+        pre.appendChild(codeEl);
+        viewport.appendChild(pre);
+
+        wrap.appendChild(head);
+        wrap.appendChild(viewport);
+        return wrap;
+      }
+
+      function renderMessage(raw, messageType = "user", userName = null) {
+        const segments = parseCodeFence(raw);
+        if (segments.length === 0) {
+          msgEl.appendChild(makeTextBubble(raw.trim(), messageType, userName));
+        } else {
+          for (const seg of segments) {
+            if (seg.type === "text")
+              msgEl.appendChild(
+                makeTextBubble(seg.content, messageType, userName)
+              );
+            if (seg.type === "code")
+              msgEl.appendChild(
+                makeCodeBubble(seg.content, seg.lang, messageType, userName)
+              );
+          }
+        }
+        scrollToBottom();
+      }
+
+      function renderRemoteMessage(message) {
+        if (message.is_code) {
+          // Handle code messages from remote users
+          const segments = parseCodeFence(message.content);
+          if (segments.length === 0) {
+            msgEl.appendChild(
+              makeTextBubble(message.content.trim(), "other", message.user_name)
+            );
+          } else {
+            for (const seg of segments) {
+              if (seg.type === "text")
+                msgEl.appendChild(
+                  makeTextBubble(seg.content, "other", message.user_name)
+                );
+              if (seg.type === "code")
+                msgEl.appendChild(
+                  makeCodeBubble(
+                    seg.content,
+                    seg.lang,
+                    "other",
+                    message.user_name
+                  )
+                );
+            }
+          }
+        } else {
+          renderMessage(message.content, "other", message.user_name);
+        }
+        scrollToBottom();
+      }
+
+      function renderSystemMessage(content) {
+        const div = document.createElement("div");
+        div.className = "bubble system msg";
+        div.textContent = content;
+        msgEl.appendChild(div);
+        scrollToBottom();
+      }
+
+      function handleSend() {
+        const val = input.value;
+        if (!val.trim()) return;
+
+        // Check if code mode is ON and wrap message in code fences
+        let messageToSend = val;
+        if (codeMode) {
+          messageToSend = "```\n" + val + "\n```";
+        }
+
+        // Send message via WebSocket
+        if (isConnected) {
+          socket.emit("send_message", {
+            message: messageToSend,
+            is_code: codeMode,
+          });
+        }
+
+        // Render local message
+        renderMessage(messageToSend, "user", currentUserName);
+        input.value = "";
+        input.style.height = "44px";
+      }
+
+      // Code toggle state
+      let codeMode = false;
+
+      // Code toggle functionality
+      function toggleCode() {
+        codeMode = !codeMode;
+        codeToggleBtn.checked = codeMode;
+
+        // Show/hide code editor button based on code mode
+        codeEditorBtn.style.display = codeMode ? "flex" : "none";
+
+        input.focus();
+      }
+
+      // Modal functionality
+      function openCodeEditor() {
+        codeEditorModal.style.display = "flex";
+        codeEditor.focus();
+      }
+
+      function closeCodeEditor() {
+        codeEditorModal.style.display = "none";
+        input.focus();
+      }
+
+      function insertCodeToInput() {
+        const code = codeEditor.value.trim();
+
+        if (code) {
+          if (codeMode) {
+            // If code mode is ON, just insert the code without fences
+            // The handleSend function will add the fences
+            input.value = code;
+          } else {
+            // If code mode is OFF, insert with language-specific fences
+            const codeBlock = `\`\`\`\n${code}\n\`\`\``;
+            input.value = codeBlock;
+          }
+          input.focus();
+          input.selectionStart = input.value.length;
+          input.selectionEnd = input.value.length;
+        }
+
+        closeCodeEditor();
+      }
+
+      function clearCodeEditor() {
+        codeEditor.value = "";
+        codeEditor.focus();
+      }
+
+      sendBtn.addEventListener("click", handleSend);
+      codeToggleBtn.addEventListener("change", toggleCode);
+      codeEditorBtn.addEventListener("click", openCodeEditor);
+      closeModal.addEventListener("click", closeCodeEditor);
+      cancelModal.addEventListener("click", closeCodeEditor);
+      insertCode.addEventListener("click", insertCodeToInput);
+      clearCode.addEventListener("click", clearCodeEditor);
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          handleSend();
+        }
+        if (e.key === "k" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          toggleCode();
+        }
+        if (e.key === "Tab") {
+          e.preventDefault();
+
+          const start = input.selectionStart;
+          const end = input.selectionEnd;
+          const value = input.value;
+
+          // Insert tab at cursor position
+          const newValue =
+            value.substring(0, start) + "\t" + value.substring(end);
+          input.value = newValue;
+
+          // Move cursor after the inserted tab
+          input.selectionStart = input.selectionEnd = start + 1;
+        }
+      });
+
+      // Modal keyboard shortcuts
+      codeEditor.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+
+          const start = codeEditor.selectionStart;
+          const end = codeEditor.selectionEnd;
+          const value = codeEditor.value;
+
+          // Insert tab at cursor position
+          const newValue =
+            value.substring(0, start) + "\t" + value.substring(end);
+          codeEditor.value = newValue;
+
+          // Move cursor after the inserted tab
+          codeEditor.selectionStart = codeEditor.selectionEnd = start + 1;
+        }
+
+        if (e.key === "Escape") {
+          closeCodeEditor();
+        }
+
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          insertCodeToInput();
+        }
+      });
+
+      // Close modal when clicking outside
+      codeEditorModal.addEventListener("click", (e) => {
+        if (e.target === codeEditorModal) {
+          closeCodeEditor();
+        }
+      });
+
+      // Name entry functionality
+      function joinChat() {
+        const name = userNameInput.value.trim();
+        if (!name) {
+          userNameInput.focus();
+          return;
+        }
+
+        currentUserName = name;
+        hasJoined = true;
+
+        // Hide name entry modal
+        nameEntryModal.style.display = "none";
+
+        // Enable input and update placeholder
+        input.disabled = false;
+        input.placeholder = "Type a message or paste code";
+
+        // Determine room from URL (e.g., /room/<room_id>)
+        let room = "general";
+        const pathMatch = window.location.pathname.match(/^\/room\/(.+)$/);
+        if (pathMatch && pathMatch[1]) {
+          room = decodeURIComponent(pathMatch[1]);
+        }
+
+        // Join the chat room
+        socket.emit("join_chat", {
+          room: room,
+          name: currentUserName,
+        });
+
+        // Focus on input
+        input.focus();
+      }
+
+      // Name entry event listeners
+      joinChatBtn.addEventListener("click", joinChat);
+      userNameInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          joinChat();
+        }
+      });
+
+      // WebSocket event handlers
+      socket.on("connect", () => {
+        console.log("Connected to server");
+        isConnected = true;
+        connectionStatus.textContent = "Connected";
+        connectionStatus.className = "status-online";
+
+        // Don't auto-join, wait for name entry
+      });
+
+      socket.on("disconnect", () => {
+        console.log("Disconnected from server");
+        isConnected = false;
+        connectionStatus.textContent = "Disconnected";
+        connectionStatus.className = "status-offline";
+      });
+
+      socket.on("user_joined", (data) => {
+        console.log("User joined:", data.user_id, data.user_name);
+        currentUserId = data.user_id;
+        if (data.user_id !== currentUserId) {
+          renderSystemMessage(data.message.content);
+        }
+        showNotification(`${data.user_name} joined the chat`);
+      });
+      socket.on("user_left", (data) => {
+        showNotification(`${data.user_name} left the chat`);
+      });
+      socket.on("chat_history", (data) => {
+        console.log("Received chat history:", data.messages.length, "messages");
+        // Clear existing messages
+        msgEl.innerHTML = "";
+
+        // Render all messages from history
+        data.messages.forEach((msg) => {
+          if (msg.type === "system") {
+            renderSystemMessage(msg.content);
+          } else {
+            renderRemoteMessage(msg);
+          }
+        });
+      });
+
+      socket.on("new_message", (message) => {
+        console.log("New message received:", message);
+        renderRemoteMessage(message);
+      });
+
+      socket.on("message_sent", (data) => {
+        console.log("Message sent successfully:", data.id);
+      });
+
+      socket.on("user_typing", (data) => {
+        // You can implement typing indicators here
+        console.log("User typing:", data.user_id, data.is_typing);
+      });
+
+      // Initialize connection status
+      connectionStatus.textContent = "Connecting...";
+      connectionStatus.className = "status-offline";
+
+      // Disable input until user joins
+      input.disabled = true;
+      input.placeholder = "Enter your name to join the chat...";
+
+      // Focus on name input
+      userNameInput.focus();
+    </script>
+  </body>
+</html>

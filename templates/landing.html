@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anonyma Rooms</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+      :root {
+        --primary: #3b82f6;
+        --primary-light: #60a5fa;
+        --primary-dark: #2563eb;
+        --secondary: #8b5cf6;
+        --success: #10b981;
+        --success-dark: #059669;
+        --warning: #f59e0b;
+        --bg: #0b0f1a;
+        --bg-light: #1e293b;
+        --bg-lighter: #334155;
+        --card-bg: rgba(30, 41, 59, 0.7);
+        --card-hover: rgba(51, 65, 85, 0.6);
+        --text: #f8fafc;
+        --subtext: #94a3b8;
+        --border: rgba(71, 85, 105, 0.4);
+        --border-light: rgba(100, 116, 139, 0.6);
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: linear-gradient(135deg, var(--bg) 0%, #131c2f 100%);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        overflow-x: hidden;
+        line-height: 1.5;
+        position: relative;
+      }
+
+      /* Animated background */
+      .bg-bubbles {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        overflow: hidden;
+      }
+
+      .bg-bubbles li {
+        position: absolute;
+        list-style: none;
+        display: block;
+        width: 40px;
+        height: 40px;
+        background-color: rgba(59, 130, 246, 0.1);
+        bottom: -160px;
+        border-radius: 50%;
+        animation: square 25s infinite;
+        transition-timing-function: linear;
+      }
+
+      .bg-bubbles li:nth-child(1) {
+        left: 10%;
+        width: 80px;
+        height: 80px;
+        animation-delay: 0s;
+        background: rgba(59, 130, 246, 0.15);
+      }
+
+      .bg-bubbles li:nth-child(2) {
+        left: 20%;
+        width: 90px;
+        height: 90px;
+        animation-delay: 2s;
+        animation-duration: 17s;
+        background: rgba(139, 92, 246, 0.15);
+      }
+
+      .bg-bubbles li:nth-child(3) {
+        left: 25%;
+        animation-delay: 4s;
+      }
+
+      .bg-bubbles li:nth-child(4) {
+        left: 40%;
+        width: 60px;
+        height: 60px;
+        animation-duration: 22s;
+        background: rgba(14, 165, 233, 0.15);
+      }
+
+      .bg-bubbles li:nth-child(5) {
+        left: 70%;
+        width: 120px;
+        height: 120px;
+        animation-delay: 3s;
+        background: rgba(59, 130, 246, 0.2);
+      }
+
+      @keyframes square {
+        0% {
+          transform: translateY(0) rotate(0deg);
+          opacity: 0.5;
+          border-radius: 50%;
+        }
+        100% {
+          transform: translateY(-1000px) rotate(720deg);
+          opacity: 0;
+          border-radius: 30%;
+        }
+      }
+
+      /* Header */
+      header {
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+        padding: 16px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        box-shadow: var(--shadow-md);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .logo::before {
+        content: "💬";
+        font-size: 1.3rem;
+      }
+
+      .header-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .create-btn,
+      .nav-btn {
+        border: none;
+        padding: 12px 20px;
+        border-radius: var(--radius-md);
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .create-btn {
+        background: linear-gradient(
+          135deg,
+          var(--primary),
+          var(--primary-dark)
+        );
+        color: white;
+        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+      }
+
+      .create-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: 0.5s;
+      }
+
+      .create-btn:hover::before {
+        left: 100%;
+      }
+
+      .create-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+      }
+
+      .nav-btn {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        border: 1px solid var(--border-light);
+      }
+
+      .nav-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+      }
+
+      /* Hero section */
+      .hero {
+        text-align: center;
+        padding: 80px 24px 60px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        top: -100px;
+        left: -100px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(
+          circle,
+          rgba(59, 130, 246, 0.15) 0%,
+          transparent 70%
+        );
+        z-index: -1;
+        animation: float 6s ease-in-out infinite;
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        bottom: -100px;
+        right: -100px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(
+          circle,
+          rgba(139, 92, 246, 0.15) 0%,
+          transparent 70%
+        );
+        z-index: -1;
+        animation: float 8s ease-in-out infinite alternate;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0) translateX(0);
+        }
+        50% {
+          transform: translateY(10px) translateX(5px);
+        }
+      }
+
+      .hero h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 16px;
+        line-height: 1.2;
+        background: linear-gradient(90deg, var(--text), #a5b4fc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero p {
+        font-size: 1.1rem;
+        color: var(--subtext);
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      /* Main container */
+      main {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+        position: relative;
+      }
+
+      .room-container {
+        width: 100%;
+        max-width: 800px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      /* Room list */
+      .room-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border);
+        padding: 24px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: var(--transition);
+        flex-wrap: wrap;
+        gap: 16px;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .room-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary), transparent);
+      }
+
+      .room-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+        background: var(--card-hover);
+        border-color: var(--border-light);
+      }
+
+      .room-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        word-break: break-word;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .room-status {
+        font-size: 0.9rem;
+        font-weight: 500;
+        padding: 8px 12px;
+        border-radius: var(--radius-sm);
+        background: rgba(255, 255, 255, 0.05);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .room-status.protected {
+        color: var(--warning);
+        background: rgba(245, 158, 11, 0.1);
+      }
+
+      .room-status.public {
+        color: var(--success);
+        background: rgba(16, 185, 129, 0.1);
+      }
+
+      .room-timer {
+        flex: 1;
+        padding: 0 16px;
+        font-size: 0.85rem;
+        color: var(--subtext);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .room-timer div {
+        line-height: 1.3;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* Footer */
+      footer {
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(12px);
+        border-top: 1px solid var(--border);
+        text-align: center;
+        padding: 20px 0;
+        font-size: 0.85rem;
+        color: var(--subtext);
+        position: sticky;
+        bottom: 0;
+        z-index: 100;
+      }
+
+      /* Empty state */
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--subtext);
+      }
+
+      .empty-state svg {
+        opacity: 0.6;
+        margin-bottom: 16px;
+      }
+
+      /* Loading animation */
+      @keyframes pulse {
+        0% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0.6;
+        }
+      }
+
+      .loading {
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .hero h1 {
+          font-size: 2rem;
+        }
+
+        .hero p {
+          font-size: 1rem;
+        }
+
+        .room-card {
+          padding: 20px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        header {
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+
+        .hero {
+          padding: 60px 20px 40px;
+        }
+
+        .room-card {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .room-timer {
+          width: 100%;
+          padding: 12px 0 0;
+          border-top: 1px solid var(--border);
+          flex-direction: row;
+          justify-content: space-between;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .header-buttons {
+          width: 100%;
+        }
+
+        .create-btn,
+        .nav-btn {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .room-card {
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <ul class="bg-bubbles">
+      <li></li>
+      <li></li>
+      <li></li>
+      <li></li>
+      <li></li>
+    </ul>
+
+    <header>
+      <div class="logo">Anonyma</div>
+      <div class="header-buttons">
+        <button class="nav-btn" onclick="window.location.href='/about'">
+          <i class="fas fa-question-circle"></i>
+          Docs
+        </button>
+        <button class="create-btn" id="createBtn">
+          <i class="fas fa-plus"></i>
+          Create Room
+        </button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h1>Share Code. Chat Securely. Let AI Assist.</h1>
+      <p>
+        Join a room or create your own private space. Stay connected securely
+        and enjoy smooth anonymous conversations anytime, anywhere.
+      </p>
+    </section>
+
+    <main>
+      <div class="room-container" id="rooms">
+        <div class="empty-state loading">
+          <i class="fas fa-comments" style="font-size: 48px"></i>
+          <h3 style="margin-bottom: 8px; color: var(--text)">
+            Loading rooms...
+          </h3>
+          <p>Please wait while we fetch active rooms</p>
+        </div>
+      </div>
+    </main>
+
+    <footer>© 2025 Anonyma — Secure, Fast & Anonymous</footer>
+
+    <script>
+      async function loadRooms() {
+        try {
+          const res = await fetch("/api/rooms");
+          if (!res.ok) throw new Error("Failed to fetch rooms");
+
+          const data = await res.json();
+          const container = document.getElementById("rooms");
+          container.innerHTML = "";
+
+          if (!data.rooms || data.rooms.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-comments" style="font-size: 48px;"></i><br>
+                    <h3 style="margin-bottom: 8px; color: var(--text);">No active rooms yet</h3>
+                    <p>Click "Create Room" to start a new conversation</p>
+                </div>`;
+            return;
+          }
+
+          data.rooms.forEach((roomInfo) => {
+            const div = document.createElement("div");
+            div.className = "room-card";
+
+            // Left side - Room name
+            const name = document.createElement("div");
+            name.className = "room-name";
+            name.innerHTML = `<i class="fas fa-door-open"></i> ${roomInfo.name}`;
+
+            // Middle - Status timer
+            const timer = document.createElement("div");
+            timer.className = "room-timer";
+
+            // Right side - Protected status
+            const status = document.createElement("div");
+            status.className = `room-status ${
+              roomInfo.protected ? "protected" : "public"
+            }`;
+            status.innerHTML = roomInfo.protected
+              ? `<i class="fas fa-lock"></i> Protected`
+              : `<i class="fas fa-globe"></i> Public`;
+
+            div.appendChild(name);
+            div.appendChild(timer);
+            div.appendChild(status);
+
+            // Update timer function
+            const updateTimer = () => {
+              try {
+                if (roomInfo.last_active) {
+                  const lastActive = new Date(roomInfo.last_active);
+                  const now = new Date();
+                  const inactiveMs = now - lastActive;
+                  const inactiveMinutes = Math.floor(inactiveMs / 60000);
+                  const expiresIn = 1440 - inactiveMinutes; // 24h = 1440 minutes
+
+                  timer.innerHTML = `
+                            <div><i class="fas fa-clock"></i> Active ${formatTimeAgo(
+                              inactiveMs
+                            )}</div>
+                            <div><i class="fas fa-hourglass-half"></i> Expires in ${Math.max(
+                              0,
+                              expiresIn
+                            )}m</div>
+                        `;
+                } else {
+                  timer.innerHTML = `<div><i class="fas fa-circle" style="color: var(--success);"></i> Active now</div>`;
+                }
+              } catch (e) {
+                console.error("Timer error:", e);
+                timer.textContent = "Active";
+              }
+            };
+
+            // Helper function for time display
+            function formatTimeAgo(ms) {
+              const minutes = Math.floor(ms / 60000);
+              if (minutes < 1) return "now";
+              if (minutes < 60) return `${minutes}m ago`;
+              const hours = Math.floor(minutes / 60);
+              return `${hours}h ${minutes % 60}m ago`;
+            }
+
+            updateTimer();
+            const timerInterval = setInterval(updateTimer, 60000);
+
+            // Cleanup on navigation
+            div.onclick = () => {
+              clearInterval(timerInterval);
+              // For protected rooms, redirect to password page
+              if (roomInfo.protected) {
+                window.location.href = `/room_password?room=${encodeURIComponent(
+                  roomInfo.name
+                )}`;
+              } else {
+                window.location.href = `/room/${encodeURIComponent(
+                  roomInfo.name
+                )}`;
+              }
+            };
+
+            container.appendChild(div);
+          });
+        } catch (err) {
+          console.error("Error loading rooms:", err);
+          document.getElementById("rooms").innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ef4444;"></i>
+                <h3 style="margin-bottom: 8px; color: var(--text);">Error loading rooms</h3>
+                <p>Refresh to try again</p>
+            </div>`;
+        }
+      }
+
+      document.getElementById("createBtn").onclick = async () => {
+        const room = prompt("Enter a room ID (3-15 chars, a-z, 0-9):");
+
+        if (!room) return; // User cancelled
+
+        // Validation
+        const isValid = /^[a-z0-9]{3,15}$/i.test(room);
+        if (!isValid) {
+          alert("Invalid name! Use 3-15 chars: letters, numbers.");
+          return;
+        }
+
+        // Check for existing rooms
+        const roomsResponse = await fetch("/api/rooms");
+        const roomsData = await roomsResponse.json();
+        if (
+          roomsData.rooms.some(
+            (r) => r.name.toLowerCase() === room.toLowerCase()
+          )
+        ) {
+          alert(`Room "${room}" already exists!`);
+          return;
+        }
+
+        // Proceed with room creation
+        const pwd = prompt("Enter a password (leave blank for public room):");
+        try {
+          const response = await fetch("/create_room", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ room: room, password: pwd || null }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            window.location.href = `/room/${encodeURIComponent(room)}`;
+          } else {
+            const error = await response.json();
+            alert(error.error || "Failed to create room");
+          }
+        } catch (err) {
+          console.error("Error creating room:", err);
+          alert("Failed to create room. Please try again.");
+        }
+      };
+
+      // Initial load
+      setTimeout(() => {
+        loadRooms();
+      }, 800); // Small delay for initial animation
+
+      setInterval(loadRooms, 5000);
+    </script>
+  </body>
+</html>

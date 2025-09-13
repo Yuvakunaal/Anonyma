@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login - Anonyma</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+      :root {
+        --primary: #3b82f6;
+        --primary-hover: #2563eb;
+        --primary-light: rgba(59, 130, 246, 0.1);
+        --danger: #ef4444;
+        --bg-dark: #020617;
+        --bg-darker: #030712;
+        --bg-light: #0f172a;
+        --bg-lighter: #1e293b;
+        --text-main: #f8fafc;
+        --text-secondary: #94a3b8;
+        --border: #1e293b;
+        --border-light: #334155;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg-darker);
+        color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        background-image: radial-gradient(
+            at 80% 0%,
+            rgba(59, 130, 246, 0.1) 0px,
+            transparent 50%
+          ),
+          radial-gradient(
+            at 0% 50%,
+            rgba(220, 38, 38, 0.1) 0px,
+            transparent 50%
+          );
+      }
+
+      .login-container {
+        background: var(--bg-light);
+        border-radius: var(--radius-lg);
+        padding: 40px;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border);
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .login-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary), #7c3aed);
+      }
+
+      .login-container:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border-color: var(--border-light);
+      }
+
+      h1 {
+        font-size: 1.8rem;
+        margin-bottom: 30px;
+        font-weight: 700;
+        text-align: center;
+        background: linear-gradient(90deg, var(--primary), #7c3aed);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        position: relative;
+        padding-bottom: 12px;
+      }
+
+      h1::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary), transparent);
+        border-radius: 3px;
+      }
+
+      .form-group {
+        margin-bottom: 24px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+
+      input[type="password"] {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: var(--bg-lighter);
+        color: var(--text-main);
+        font-size: 15px;
+        outline: none;
+        transition: var(--transition);
+      }
+
+      input[type="password"]:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      }
+
+      .btn {
+        width: 100%;
+        padding: 14px 24px;
+        border-radius: var(--radius-sm);
+        border: none;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+      }
+
+      .error-message {
+        color: #f87171;
+        font-size: 14px;
+        margin-top: 16px;
+        text-align: center;
+        display: none;
+        padding: 10px;
+        background: rgba(220, 38, 38, 0.1);
+        border-radius: var(--radius-sm);
+        border-left: 3px solid var(--danger);
+      }
+
+      .back-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 24px;
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+        padding: 10px;
+        border-radius: var(--radius-sm);
+        transition: var(--transition);
+      }
+
+      .back-link:hover {
+        background: var(--primary-light);
+        text-decoration: none;
+      }
+
+      .back-link svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* Loading animation */
+      .loading {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Responsive styles */
+      @media (max-width: 480px) {
+        .login-container {
+          padding: 30px 24px;
+        }
+
+        h1 {
+          font-size: 1.6rem;
+        }
+
+        .btn {
+          padding: 12px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <h1>Admin Login</h1>
+      <div class="form-group">
+        <label for="adminPassword">Admin Password</label>
+        <input
+          type="password"
+          id="adminPassword"
+          placeholder="Enter admin password"
+        />
+      </div>
+      <button id="loginBtn" class="btn btn-primary">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+          <polyline points="10 17 15 12 10 7"></polyline>
+          <line x1="15" y1="12" x2="3" y2="12"></line>
+        </svg>
+        Login
+      </button>
+      <div id="errorMessage" class="error-message">Incorrect password</div>
+      <a href="/" class="back-link">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Back to Home
+      </a>
+    </div>
+
+    <script>
+      document
+        .getElementById("loginBtn")
+        .addEventListener("click", async () => {
+          const password = document.getElementById("adminPassword").value;
+          const errorMessage = document.getElementById("errorMessage");
+          const loginBtn = document.getElementById("loginBtn");
+
+          if (!password) {
+            errorMessage.textContent = "Please enter password";
+            errorMessage.style.display = "block";
+            return;
+          }
+
+          // Show loading state
+          loginBtn.disabled = true;
+          loginBtn.innerHTML = '<span class="loading"></span> Authenticating';
+
+          try {
+            const response = await fetch("/api/admin/login", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+              // Store the token in localStorage
+              localStorage.setItem("adminToken", data.token);
+              // Redirect to dashboard
+              window.location.href = "/admin/dashboard";
+            } else {
+              throw new Error(data.error || "Login failed");
+            }
+          } catch (error) {
+            errorMessage.textContent = error.message;
+            errorMessage.style.display = "block";
+            setTimeout(() => {
+              errorMessage.style.display = "none";
+            }, 3000);
+          } finally {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                        <polyline points="10 17 15 12 10 7"></polyline>
+                        <line x1="15" y1="12" x2="3" y2="12"></line>
+                    </svg>
+                    Login
+                `;
+          }
+        });
+
+      // Handle Enter key press
+      document
+        .getElementById("adminPassword")
+        .addEventListener("keypress", (e) => {
+          if (e.key === "Enter") {
+            document.getElementById("loginBtn").click();
+          }
+        });
+    </script>
+  </body>
+</html>
