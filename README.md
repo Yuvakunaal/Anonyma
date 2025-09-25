@@ -1,6 +1,6 @@
 # Anonyma - Anonymous Chat Platform
 
-[![Anonymous Chat](https://img.shields.io/badge/Anonymous-Chat-blue?style=for-the-badge&logo=chat)](https://github.com/your-username/anonyma-chat)
+[![Anonymous Chat](https://img.shields.io/badge/Anonymous-Chat-blue?style=for-the-badge&logo=chat)](https://github.com/Yuvakunaal/Anonyma)
 [![Flask 2.3.3](https://img.shields.io/badge/Flask-2.3.3-green?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
 [![Socket.IO 5.3.6](https://img.shields.io/badge/Socket.IO-5.3.6-orange?style=for-the-badge&logo=socket.io)](https://socket.io/)
 [![AI Assistant](https://img.shields.io/badge/AI-Assistant-purple?style=for-the-badge&logo=ai)](https://console.groq.com/)
