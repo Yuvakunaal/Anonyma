@@ -300,12 +300,86 @@
         margin: 0 auto;
       }
 
+      /* Search section */
+      .search-section {
+        display: flex;
+        justify-content: center;
+        padding: 0 20px 20px;
+      }
+
+      .search-container {
+        width: 100%;
+        max-width: 800px;
+        position: relative;
+      }
+
+      .search-box {
+        width: 100%;
+        padding: 14px 20px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        background: var(--card-bg);
+        color: var(--text);
+        font-size: 1rem;
+        backdrop-filter: blur(12px);
+        transition: var(--transition);
+      }
+
+      .search-box:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      }
+
+      .search-box::placeholder {
+        color: var(--subtext);
+      }
+
+      .search-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--bg-light);
+        border: 1px solid var(--border);
+        border-top: none;
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 10;
+        display: none;
+        backdrop-filter: blur(12px);
+      }
+
+      .search-suggestion {
+        padding: 12px 20px;
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .search-suggestion:hover {
+        background: var(--bg-lighter);
+      }
+
+      .search-suggestion i {
+        color: var(--primary);
+      }
+
+      .no-results {
+        padding: 12px 20px;
+        color: var(--subtext);
+        font-style: italic;
+      }
+
       /* Main container */
       main {
         flex: 1;
         display: flex;
         justify-content: center;
-        padding: 20px;
+        padding: 0 20px 20px;
         position: relative;
       }
 
@@ -444,6 +518,24 @@
         animation: pulse 1.5s ease-in-out infinite;
       }
 
+      /* Highlight effect for searched room */
+      .room-card.highlight {
+        animation: highlight 1s ease 2;
+        border-color: var(--primary);
+      }
+
+      @keyframes highlight {
+        0% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        }
+      }
+
       /* Responsive adjustments */
       @media (max-width: 768px) {
         .hero h1 {
@@ -499,6 +591,10 @@
         .room-card {
           padding: 16px;
         }
+
+        .search-box {
+          padding: 12px 16px;
+        }
       }
     </style>
   </head>
@@ -534,6 +630,29 @@
       </p>
     </section>
 
+    <div class="search-section">
+      <div class="search-container">
+        <input
+          type="text"
+          class="search-box"
+          id="roomSearch"
+          placeholder="Search rooms by name..."
+        />
+        <span
+          style="
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: gray;
+          "
+          >🔍</span
+        >
+        <div class="search-suggestions" id="searchSuggestions"></div>
+      </div>
+    </div>
+
     <main>
       <div class="room-container" id="rooms">
         <div class="empty-state loading">
@@ -557,6 +676,10 @@
         }
         return deviceId;
       }
+
+      let allRooms = [];
+      let roomElements = {};
+
       async function loadRooms() {
         try {
           const res = await fetch("/api/rooms");
@@ -565,6 +688,7 @@
           const data = await res.json();
           const container = document.getElementById("rooms");
           container.innerHTML = "";
+          roomElements = {};
 
           if (!data.rooms || data.rooms.length === 0) {
             container.innerHTML = `
@@ -576,9 +700,12 @@
             return;
           }
 
+          allRooms = data.rooms;
+
           data.rooms.forEach((roomInfo) => {
             const div = document.createElement("div");
             div.className = "room-card";
+            div.id = `room-${roomInfo.name}`;
 
             // Left side - Room name
             const name = document.createElement("div");
@@ -658,6 +785,7 @@
             };
 
             container.appendChild(div);
+            roomElements[roomInfo.name] = div;
           });
         } catch (err) {
           console.error("Error loading rooms:", err);
@@ -669,6 +797,113 @@
             </div>`;
         }
       }
+
+      // Search functionality
+      const searchBox = document.getElementById("roomSearch");
+      const searchSuggestions = document.getElementById("searchSuggestions");
+
+      searchBox.addEventListener("input", function () {
+        const searchTerm = this.value.toLowerCase().trim();
+
+        if (searchTerm === "") {
+          searchSuggestions.style.display = "none";
+          // Show all rooms
+          Object.values(roomElements).forEach((room) => {
+            room.style.display = "flex";
+          });
+          return;
+        }
+
+        // Filter rooms based on search term
+        const filteredRooms = allRooms.filter((room) =>
+          room.name.toLowerCase().includes(searchTerm)
+        );
+
+        // Update room visibility
+        Object.keys(roomElements).forEach((roomName) => {
+          const roomElement = roomElements[roomName];
+          if (roomName.toLowerCase().includes(searchTerm)) {
+            roomElement.style.display = "flex";
+          } else {
+            roomElement.style.display = "none";
+          }
+        });
+
+        // Update suggestions
+        updateSearchSuggestions(filteredRooms, searchTerm);
+      });
+
+      function updateSearchSuggestions(rooms, searchTerm) {
+        searchSuggestions.innerHTML = "";
+
+        if (rooms.length === 0) {
+          searchSuggestions.innerHTML =
+            '<div class="no-results">No rooms found</div>';
+          searchSuggestions.style.display = "block";
+          return;
+        }
+
+        // Show up to 5 suggestions
+        rooms.slice(0, 5).forEach((room) => {
+          const suggestion = document.createElement("div");
+          suggestion.className = "search-suggestion";
+          suggestion.innerHTML = `
+            <i class="fas fa-door-open"></i>
+            <span>${room.name}</span>
+          `;
+
+          suggestion.addEventListener("click", function () {
+            searchBox.value = room.name;
+            searchSuggestions.style.display = "none";
+            scrollToRoom(room.name);
+          });
+
+          searchSuggestions.appendChild(suggestion);
+        });
+
+        searchSuggestions.style.display = "block";
+      }
+
+      function scrollToRoom(roomName) {
+        const roomElement = roomElements[roomName];
+        if (roomElement) {
+          // Highlight the room
+          roomElement.classList.add("highlight");
+
+          // Scroll to the room
+          roomElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+
+          // Remove highlight after animation
+          setTimeout(() => {
+            roomElement.classList.remove("highlight");
+          }, 2000);
+        }
+      }
+
+      // Close suggestions when clicking outside
+      document.addEventListener("click", function (e) {
+        if (
+          !searchBox.contains(e.target) &&
+          !searchSuggestions.contains(e.target)
+        ) {
+          searchSuggestions.style.display = "none";
+        }
+      });
+
+      // Keyboard navigation for suggestions
+      searchBox.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          const firstSuggestion =
+            searchSuggestions.querySelector(".search-suggestion");
+          if (firstSuggestion) {
+            firstSuggestion.focus();
+          }
+        }
+      });
 
       document.getElementById("createBtn").onclick = async () => {
         const room = prompt("Enter a room ID (3-15 chars, a-z, 0-9):");
@@ -700,7 +935,11 @@
           const response = await fetch("/create_room", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ room: room, password: pwd || null, device_id: getDeviceId() }),
+            body: JSON.stringify({
+              room: room,
+              password: pwd || null,
+              device_id: getDeviceId(),
+            }),
           });
 
           if (response.ok) {
