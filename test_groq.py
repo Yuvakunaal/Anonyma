@@ -5,8 +5,19 @@ import dotenv
 dotenv.load_dotenv()
 
 code = '''
-def hello():
-    print("Hello, world!)
+    -- Example of a recursive CTE to find depth in a hierarchy (PostgreSQL/SQL Server)
+    WITH RECURSIVE EmployeeHierarchy AS (
+        SELECT employee_id, manager_id, employee_name, 1 AS depth
+        FROM Employees
+        WHERE manager_id IS NULL -- Base case: top-level employees
+
+        UNION ALL
+
+        SELECT e.employee_id, e.manager_id, e.employee_name, eh.depth + 1
+        FROM Employees e
+        JOIN EmployeeHierarchy eh ON e.manager_id = eh.employee_id
+    )
+    SELECT * FROM EmployeeHierarchy;
 '''
 
 client = OpenAI(

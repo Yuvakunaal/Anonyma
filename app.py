@@ -381,43 +381,6 @@ def ai_summarize():
     Language: <Detected Language>
     Summary: <two-sentence summary>
     """
-
-    ############# Get API key from environment - OpenRouter
-    '''
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        app.logger.error("OPENROUTER_API_KEY not configured")
-        return jsonify({"error": "AI service not configured"}), 500
-
-    try:
-        # Make API request with timeout
-        response = requests.post(
-            url="https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            data=json.dumps({
-                "model": "meta-llama/llama-3.3-70b-instruct:free",
-                "messages": [{"role": "user", "content": prompt}],
-            }),
-            timeout=10  # 10 seconds timeout
-        )
-
-        # Check for HTTP errors
-        response.raise_for_status()
-
-        # Parse response
-        result = response.json()
-        summary = result["choices"][0]["message"]["content"]
-        
-        # Validate the response format
-        if not summary.startswith("Language:") or "Summary:" not in summary:
-            app.logger.warning(f"Unexpected AI response format: {summary}")
-            summary = f"AI returned unexpected format:\n{summary}"
-
-        return jsonify({"summary": summary})
-        '''
         
     ########## Get API key from environment - Groq
     try:
@@ -428,26 +391,26 @@ def ai_summarize():
         response = client.responses.create(
             model="llama-3.1-8b-instant",
             input = prompt,
+            max_output_tokens=200
         )
-        response.raise_for_status()
-        
+
         summary = response.output_text
         
-        if not summary.startswith("Language:") or "Summary:" not in summary:
-            app.logger.warning(f"Unexpected AI response format: {summary}")
-            summary = f"AI returned unexpected format:\n{summary}"
         return jsonify({"summary": response.output_text})
     
     except requests.exceptions.RequestException as e:
-        # app.logger.error(f"OpenRouter API request failed: {str(e)}")
         app.logger.error(f"Groq API request failed: {str(e)}")
         return jsonify({"error": f"AI service unavailable: {str(e)}"}), 503
     except KeyError as e:
         app.logger.error(f"Malformed API response: {str(e)}")
         return jsonify({"error": "AI service returned malformed response"}), 502
     except Exception as e:
-        app.logger.error(f"Unexpected error: {str(e)}")
-        return jsonify({"error": "Internal server error"}), 500
+        if hasattr(e, "status_code") and e.status_code == 429:
+            app.logger.error(f"Unexpected error: {str(e)}")
+            return jsonify({"summary": "⚠️ AI is busy (rate limit hit). Please try again in a few seconds."})
+        else:
+            app.logger.error(f"Unexpected error: {str(e)}")
+            return jsonify({"summary": f"❌ Error: {str(e)}"})
 
 
 @socketio.on('connect')
