@@ -3,7 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Anonyma Rooms</title>
+    <title>Anonyma</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='85' text-anchor='middle' font-size='90'>💬</text></svg>"
+    />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -679,6 +683,7 @@
 
       let allRooms = [];
       let roomElements = {};
+      let currentSearchTerm = "";
 
       async function loadRooms() {
         try {
@@ -787,6 +792,11 @@
             container.appendChild(div);
             roomElements[roomInfo.name] = div;
           });
+
+          // After loading rooms, apply the current search filter if any
+          if (currentSearchTerm) {
+            applySearchFilter(currentSearchTerm);
+          }
         } catch (err) {
           console.error("Error loading rooms:", err);
           document.getElementById("rooms").innerHTML = `
@@ -802,41 +812,35 @@
       const searchBox = document.getElementById("roomSearch");
       const searchSuggestions = document.getElementById("searchSuggestions");
 
+      function applySearchFilter(searchTerm) {
+        // REMOVED: Filtering logic that hides non-matching rooms
+        // All rooms remain visible regardless of search term
+
+        // Update suggestions only
+        updateSearchSuggestions(searchTerm);
+      }
+
       searchBox.addEventListener("input", function () {
         const searchTerm = this.value.toLowerCase().trim();
+        currentSearchTerm = searchTerm;
 
         if (searchTerm === "") {
           searchSuggestions.style.display = "none";
-          // Show all rooms
-          Object.values(roomElements).forEach((room) => {
-            room.style.display = "flex";
-          });
+          // All rooms are already visible, no need to change anything
           return;
         }
 
-        // Filter rooms based on search term
+        applySearchFilter(searchTerm);
+      });
+
+      function updateSearchSuggestions(searchTerm) {
+        searchSuggestions.innerHTML = "";
+
         const filteredRooms = allRooms.filter((room) =>
           room.name.toLowerCase().includes(searchTerm)
         );
 
-        // Update room visibility
-        Object.keys(roomElements).forEach((roomName) => {
-          const roomElement = roomElements[roomName];
-          if (roomName.toLowerCase().includes(searchTerm)) {
-            roomElement.style.display = "flex";
-          } else {
-            roomElement.style.display = "none";
-          }
-        });
-
-        // Update suggestions
-        updateSearchSuggestions(filteredRooms, searchTerm);
-      });
-
-      function updateSearchSuggestions(rooms, searchTerm) {
-        searchSuggestions.innerHTML = "";
-
-        if (rooms.length === 0) {
+        if (filteredRooms.length === 0) {
           searchSuggestions.innerHTML =
             '<div class="no-results">No rooms found</div>';
           searchSuggestions.style.display = "block";
@@ -844,7 +848,7 @@
         }
 
         // Show up to 5 suggestions
-        rooms.slice(0, 5).forEach((room) => {
+        filteredRooms.slice(0, 5).forEach((room) => {
           const suggestion = document.createElement("div");
           suggestion.className = "search-suggestion";
           suggestion.innerHTML = `
@@ -854,6 +858,7 @@
 
           suggestion.addEventListener("click", function () {
             searchBox.value = room.name;
+            currentSearchTerm = room.name.toLowerCase();
             searchSuggestions.style.display = "none";
             scrollToRoom(room.name);
           });
@@ -876,7 +881,7 @@
             block: "center",
           });
 
-          // Remove highlight after animation
+          // Remove highlight after animation but keep the room visible
           setTimeout(() => {
             roomElement.classList.remove("highlight");
           }, 2000);
