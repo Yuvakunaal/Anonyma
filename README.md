@@ -13,7 +13,7 @@
 
 - 🔒 **Complete Anonymity:** No accounts or personal information required
 - 💬 **Real-time Chat:** Instant messaging with Socket.IO technology
-- 💻 **Code Sharing:** Beautiful code blocks with syntax highlighting and copy functionality
+- 💻 **Code Sharing:** Beautiful code blocks and copy functionality
 - 🤖 **AI Assistant:** Get instant code explanations with integrated AI technology
 - 🔐 **Private Rooms:** Optional password protection for sensitive discussions
 - 📱 **Responsive Design:** Works perfectly on desktop and mobile devices
@@ -59,7 +59,7 @@ ADMIN_PASSWORD=your-admin-password
 ADMIN_SECRET_KEY=your-admin-secret-key
 ROOM_TIMEOUT_HOURS=24
 CLEANUP_INTERVAL_SECONDS=3600
-MAX_ROOMS_PER_IP=5
+MAX_ROOMS_PER_DEVICE=5
 ```
 
 ### 🔑 How to Get Groq API Key
@@ -102,7 +102,7 @@ python3 app.py
 # 🛡️ Security Features
 
 - **Password Hashing**: All room passwords are securely hashed.
-- **IP Rate Limiting**: Maximum 5 rooms per IP per day.
+- **Device Rate Limiting**: Maximum 5 rooms per Device per day.
 - **Session Management**: Secure session-based room access.
 - **Auto Cleanup**: Inactive rooms are automatically deleted.
 - **No Permanent Storage**: All data is temporary and ephemeral.

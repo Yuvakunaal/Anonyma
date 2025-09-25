@@ -27,53 +27,54 @@ ROOM_TIMEOUT = timedelta(hours=int(os.getenv('ROOM_TIMEOUT_HOURS', 24)))
 CLEANUP_INTERVAL = int(os.getenv('CLEANUP_INTERVAL_SECONDS', 3600))
 
 # Add this with other constants
-MAX_ROOMS_PER_IP = int(os.getenv('MAX_ROOMS_PER_IP', 5))
+MAX_ROOMS_PER_DEVICE = int(os.getenv('MAX_ROOMS_PER_DEVICE', 5))
 ROOM_CREATION_WINDOW = timedelta(hours=24)
-ip_room_creation = {}
+device_room_creation = {}
 
 active_users = {}
 chat_rooms = {}
 
 ADMIN_SECRET_KEY = os.getenv('ADMIN_SECRET_KEY')
 
-def cleanup_ip_limits():
-    """Background task to clean up old IP limits"""
+def cleanup_device_limits():
+    """Background task to clean up old device limits"""
     while True:
         current_time = datetime.now()
-        ips_to_delete = []
+        devices_to_delete = []
         
-        for ip, data in ip_room_creation.items():
+        for device_id, data in device_room_creation.items():
             if (current_time - data['last_reset']) > ROOM_CREATION_WINDOW:
-                ips_to_delete.append(ip)
+                devices_to_delete.append(device_id)
         
-        for ip in ips_to_delete:
-            del ip_room_creation[ip]
-            print(f"Reset IP limit for: {ip}")
+        for device_id in devices_to_delete:
+            del device_room_creation[device_id]
+            print(f"Reset device limit for: {device_id}")
         
-        time.sleep(3600)  # Run hourly
+        time.sleep(3600)
 
 # Start the cleanup thread
-ip_cleanup_thread = threading.Thread(target=cleanup_ip_limits, daemon=True)
-ip_cleanup_thread.start()
+device_cleanup_thread = threading.Thread(target=cleanup_device_limits, daemon=True)
+device_cleanup_thread.start()
 
-def check_ip_limit(ip):
-    """Check if IP has exceeded room creation limit"""
+def check_device_limit(device_id):
+    """Check if device has exceeded room creation limit"""
     current_time = datetime.now()
     
-    if ip not in ip_room_creation:
-        ip_room_creation[ip] = {'count': 1, 'last_reset': current_time}
+    if device_id not in device_room_creation:
+        device_room_creation[device_id] = {'count': 1, 'last_reset': current_time}
         return True
     
     # Reset counter if window has passed
-    if (current_time - ip_room_creation[ip]['last_reset']) > ROOM_CREATION_WINDOW:
-        ip_room_creation[ip] = {'count': 1, 'last_reset': current_time}
+    if (current_time - device_room_creation[device_id]['last_reset']) > ROOM_CREATION_WINDOW:
+        device_room_creation[device_id] = {'count': 1, 'last_reset': current_time}
         return True
     
-    if ip_room_creation[ip]['count'] >= MAX_ROOMS_PER_IP:
+    if device_room_creation[device_id]['count'] >= MAX_ROOMS_PER_DEVICE:
         return False
     
-    ip_room_creation[ip]['count'] += 1
+    device_room_creation[device_id]['count'] += 1
     return True
+
 
 def cleanup_inactive_rooms():
     """Background task to clean up inactive rooms"""
@@ -132,7 +133,7 @@ def admin_login():
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
-    return render_template('admin_dashboard.html', MAX_ROOMS_PER_IP=MAX_ROOMS_PER_IP)
+    return render_template('admin_dashboard.html', MAX_ROOMS_PER_DEVICE=MAX_ROOMS_PER_DEVICE)
 
 @app.route('/api/admin/rooms', methods=['GET', 'POST'])
 @admin_required
@@ -161,12 +162,13 @@ def admin_rooms():
             return jsonify({'error': 'Room already exists'}), 400
         
         # Get client IP
-        ip = request.remote_addr
-        
-        # Check IP limit unless forcing
-        if not force_create and not check_ip_limit(ip):
+        # Use 'admin' as device ID for admin requests
+        device_id = 'admin'
+
+        # Check device limit unless forcing
+        if not force_create and not check_device_limit(device_id):
             return jsonify({
-                'error': f'IP limit reached ({MAX_ROOMS_PER_IP} rooms/day). Use force=true to override.',
+                'error': f'Device limit reached ({MAX_ROOMS_PER_DEVICE} rooms/day). Use force=true to override.',
                 'limit_reached': True
             }), 429
         
@@ -180,7 +182,7 @@ def admin_rooms():
         return jsonify({
             'status': 'room created', 
             'room': room_name,
-            'remaining': MAX_ROOMS_PER_IP - ip_room_creation.get(ip, {}).get('count', 0)
+            'remaining': MAX_ROOMS_PER_DEVICE - device_room_creation.get(device_id, {}).get('count', 0)
         }), 201
 
 @app.route('/api/admin/rooms/<room_name>', methods=['DELETE'])
@@ -282,15 +284,22 @@ def check_room():
 @app.route('/create_room', methods=['POST'])
 def create_room():
     # Get client IP (handles proxies)
-    ip = request.remote_addr
+    data = request.get_json()
+    device_id = data.get('device_id', 'unknown')
     
-    # Check IP limit
-    if not check_ip_limit(ip):
+    # 🎯 ADD DEBUG LOGGING
+    print(f"=== CREATE ROOM DEBUG ===")
+    print(f"Device ID received: {device_id}")
+    print(f"Client IP: {request.remote_addr}")
+    print(f"All device limits: {device_room_creation}")
+    print(f"========================")
+
+    # Check device limit
+    if not check_device_limit(device_id):
         return jsonify({
-            'error': f'You can only create {MAX_ROOMS_PER_IP} rooms per day. Try again later.'
+            'error': f'You can only create {MAX_ROOMS_PER_DEVICE} rooms per day per device. Try again later.'
         }), 429
     
-    data = request.get_json()
     room_name = data.get('room', '').strip()
     password = data.get('password')
 
@@ -312,8 +321,8 @@ def create_room():
     
     return jsonify({
         'status': 'Room created',
-        'remaining': MAX_ROOMS_PER_IP - ip_room_creation[ip]['count'],
-        'reset_time': (ip_room_creation[ip]['last_reset'] + ROOM_CREATION_WINDOW).isoformat()
+        'remaining': MAX_ROOMS_PER_DEVICE - device_room_creation[device_id]['count'],
+        'reset_time': (device_room_creation[device_id]['last_reset'] + ROOM_CREATION_WINDOW).isoformat()
     }), 201
 
  
