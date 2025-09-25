@@ -10,6 +10,7 @@ import threading
 import time
 import re
 import os
+from openai import OpenAI
 from dotenv import load_dotenv
 from functools import wraps
 
@@ -381,7 +382,8 @@ def ai_summarize():
     Summary: <two-sentence summary>
     """
 
-    # Get API key from environment
+    ############# Get API key from environment - OpenRouter
+    '''
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         app.logger.error("OPENROUTER_API_KEY not configured")
@@ -415,9 +417,30 @@ def ai_summarize():
             summary = f"AI returned unexpected format:\n{summary}"
 
         return jsonify({"summary": summary})
-
+        '''
+        
+    ########## Get API key from environment - Groq
+    try:
+        client = OpenAI(
+            api_key=os.environ.get("GROQ_API_KEY"),
+            base_url="https://api.groq.com/openai/v1",
+        )
+        response = client.responses.create(
+            model="llama-3.1-8b-instant",
+            input = prompt,
+        )
+        response.raise_for_status()
+        
+        summary = response.output_text
+        
+        if not summary.startswith("Language:") or "Summary:" not in summary:
+            app.logger.warning(f"Unexpected AI response format: {summary}")
+            summary = f"AI returned unexpected format:\n{summary}"
+        return jsonify({"summary": response.output_text})
+    
     except requests.exceptions.RequestException as e:
-        app.logger.error(f"OpenRouter API request failed: {str(e)}")
+        # app.logger.error(f"OpenRouter API request failed: {str(e)}")
+        app.logger.error(f"Groq API request failed: {str(e)}")
         return jsonify({"error": f"AI service unavailable: {str(e)}"}), 503
     except KeyError as e:
         app.logger.error(f"Malformed API response: {str(e)}")
